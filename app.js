@@ -1,35 +1,30 @@
-var createError = require('http-errors');
-var express = require('express');
-var path = require('path');
-var cookieParser = require('cookie-parser');
-var session = require('express-session')
+const createError = require('http-errors');
+const express = require('express');
+const path = require('path');
 
-var indexRouter = require('./routes/index');
-var usersRouter = require('./routes/users');
+const config = require('./settings');
+const socketController = require('./contollers/sockets');
+const indexRouter = require('./routes/index');
+const usersRouter = require('./routes/users');
+const io = require('socket.io')(chatServer);
 
-var app = express();
+const app = express();
 
 const chatServer = require('http').createServer(app);
+chatServer.listen(app.get('port'));
 
-// view engine setup
+app.use('/', indexRouter);
+app.use('/users', usersRouter);
+
+// View engine setup:
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
-app.use(express.static(path.join(__dirname, 'public')));
-
-app.use(cookieParser());
+// Set configurations:
+app.set('port', config.port);
 app.set('trust proxy', 1) // trust first proxy
-app.use(session({
-  secret: 'sessi0nS3cr3t',
-  saveUninitialized: true,
-  resave: false
-}))
 
 global.users = [];
-
-const io = require('socket.io')(chatServer);
 
 io.use((socket, next) => {
   let token = socket.handshake.query.username;
@@ -39,56 +34,32 @@ io.use((socket, next) => {
 
 io.on('connection', (client) => {
   let token = client.handshake.query.username;
-  client.on('disconnect', () => {
-    var clientid = client.id;
-    for (var i = 0; i < users.length; i++)
-      if (users[i].id && users[i].id == clientid) {
-        users.splice(i, 1);
-        break;
-      }
-  });
+  
+  socketController.disconnect(client);
+
   users.push({
     id: client.id,
     name: token
   });
-  client.on('typing', (data) => {
-    io.emit("typing", data)
-  });
-
-  client.on('stoptyping', (data) => {
-    io.emit("stoptyping", data)
-  });
-
-  client.on('message', (data) => {
-    io.emit("message", data)
-  });
-
-  io.emit("newuser", {
-    id: client.id,
-    name: token
-  })
+  
+  socketController.onTyping(io, client);
+  socketController.onStopTyping(io, client);
+  socketController.onMessage(io, client);
+  socketController.onNewUser(io);
 });
-chatServer.listen(7777);
 
-
-app.use('/', indexRouter);
-app.use('/users', usersRouter);
-
-// catch 404 and forward to error handler
+// Catch 404 and forward to error handler:
 app.use(function (req, res, next) {
   next(createError(404));
 });
 
-
-// error handler
+// Error handler:
 app.use(function (err, req, res, next) {
-  // set locals, only providing error in development
+  // Set locals, only providing error in development
   res.locals.message = err.message;
   res.locals.error = req.app.get('env') === 'development' ? err : {};
 
-  // render the error page
+  // Render the error page:
   res.status(err.status || 500);
   res.render('error');
 });
-
-module.exports = app;
