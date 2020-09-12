@@ -1,31 +1,31 @@
-const createError = require('http-errors');
-const express = require('express');
+const app = require('express')();
 const path = require('path');
 
 const config = require('./settings');
 const socketController = require('./contollers/sockets');
+
 const indexRouter = require('./routes/index');
 const usersRouter = require('./routes/users');
-const io = require('socket.io')(chatServer);
-
-const app = express();
+const otherRouter = require('./routes/other');
 
 const chatServer = require('http').createServer(app);
-chatServer.listen(app.get('port'));
+const io = require('socket.io')(chatServer);
 
+// Routing:
 app.use('/', indexRouter);
 app.use('/users', usersRouter);
+app.use(otherRouter);
 
-// View engine setup:
+// View Engine setup:
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
 
-// Set configurations:
 app.set('port', config.port);
 app.set('trust proxy', 1) // trust first proxy
 
 global.users = [];
 
+// Validate username:
 io.use((socket, next) => {
   let token = socket.handshake.query.username;
 
@@ -35,7 +35,13 @@ io.use((socket, next) => {
 io.on('connection', (client) => {
   let token = client.handshake.query.username;
   
-  socketController.disconnect(client);
+  client.on('disconnect', () => {
+    console.log('user disconnected')
+
+    users = users.filter(function(item) {
+      return item.id !== client.id
+    });
+});
 
   users.push({
     id: client.id,
@@ -45,21 +51,12 @@ io.on('connection', (client) => {
   socketController.onTyping(io, client);
   socketController.onStopTyping(io, client);
   socketController.onMessage(io, client);
-  socketController.onNewUser(io);
+  socketController.onNewUserConnect(io, client, token);
 });
 
-// Catch 404 and forward to error handler:
-app.use(function (req, res, next) {
-  next(createError(404));
-});
+chatServer.listen(app.get('port'), (e) => {
+  var message;
+  message = (e) ? `Server did not start. ${e}` : `Server started on *:${app.get('port')}`;
 
-// Error handler:
-app.use(function (err, req, res, next) {
-  // Set locals, only providing error in development
-  res.locals.message = err.message;
-  res.locals.error = req.app.get('env') === 'development' ? err : {};
-
-  // Render the error page:
-  res.status(err.status || 500);
-  res.render('error');
+  console.log(message);
 });

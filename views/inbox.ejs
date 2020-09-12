@@ -21,7 +21,7 @@
                         <div class="chat_img"> <img src="https://ptetutorials.com/images/user-profile.png" alt="sunil">
                         </div>
                         <div class="chat_ib">
-                            <h5>
+                            <h5 id="chat_ib">
                                 <%= users[i].name %>
                             </h5>
                         </div>
@@ -32,138 +32,180 @@
                 <% } %>
             </div>
         </div>
-        <div class="mesgs" style="display:none">
+        <div id="messages" class="mesgs" style="display:none">
 
-            <div class="msg_history">
+            <div id="msg_history" class="msg_history">
                 <div class="col-12 mb-3 pt-0 mt-0">
                     <span id="username"></span>
                 </div>
-                <!-- <div class="incoming_msg">
-                    <div class="incoming_msg_img"> <img src="https://ptetutorials.com/images/user-profile.png" alt="sunil">
-                    </div>
-                    <div class="received_msg">
-                        <div class="received_withd_msg">
-                            <p>Test which is a new approach to have all
-                                solutions</p>
-                            <span class="time_date"> 11:01 AM | June 9</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="outgoing_msg">
-                    <div class="sent_msg">
-                        <p>Test which is a new approach to have all
-                            solutions</p>
-                        <span class="time_date"> 11:01 AM | June 9</span>
-                    </div>
-                </div> -->
             </div>
-            <div class="type_msg">
-                <span class="pencil_anim" style="display:none">Typing.....</span>
+            <div id="type_msg" class="type_msg">
+                <span id="typingBar" class="pencil_anim" style="display:none">Typing.....</span>
                 <div class="input_msg_write">
-                    <input type="text" class="write_msg" placeholder="Type a message" style="border:0; outline: none;" />
-                    <button class="msg_send_btn" type="button"><i class="fa fa-paper-plane-o" aria-hidden="true"></i></button>
+                    <input type="text" id="msgInput" class="write_msg" placeholder="Type a message" style="border:0; outline: none;" />
+                    <button id="msg_send_btn" class="msg_send_btn" type="button">
+                        <i class="fa fa-paper-plane-o" aria-hidden="true"></i>
+                    </button>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-
-
-<script src="/javascripts/socket.io.js"></script>
-<script src="/javascripts/moment.min.js"></script>
+<script src="/js/socket.io.js"></script>
+<script src="/js/moment.min.js"></script>
 <script>
-    $("document").ready(function () {
-        var username = null;
-        var myname = '<%= user %>';
-        var socket = io('http://localhost:7777', {
-            query: {
-                username: '<%= user %>'
-            }
-        });
-        socket.on('connect', function () {
-            //Add all controls here, instead of document load    
-        });
-        socket.on('typing', function (data) {
-            if (myname != data.from) {
-                $(".pencil_anim").show();
-            }
-        });
-        socket.on('stoptyping', function (data) {
-            if (myname != data.from) {
-                $(".pencil_anim").hide();
-            }
-        });
-        socket.on("message", function (data) {
-            if (myname.trim() == data.from.trim()) {
-                $(".msg_history").append(
-                    `<div class="outgoing_msg">
-                    <div class="sent_msg">
-                        <p>${data.msg}</p>
-                        <span class="time_date"> ${moment().fromNow()}</span>
-                    </div>
-                </div>`
-                )
-            } else if (myname.trim() == data.to.trim()) {
-                $(".msg_history").append(
-                    `<div class="incoming_msg">
-                    <div class="incoming_msg_img"><img src="https://ptetutorials.com/images/user-profile.png" alt="${data.from}">
-                        <span class="username">${username}</span>
-                        </div>
-                    <div class="received_msg">
-                        <div class="received_withd_msg">
-                            <p>${data.msg}</p>
-                            <span class="time_date"> ${moment().fromNow()}</span>
-                        </div>
-                    </div>
-                </div>`
-                )
-            }
-            $(".pencil_anim").hide();
-        })
-        socket.on('newuser', function (data) {
-            if (data.name != username) {
-                //alert("new user joined")
-            }
-        })
-        socket.on('disconnect', function () {});
+    var users = []; // Users who online
 
-        $(".pencil_anim").hide();
-        username = $(this).find(".chat_ib").text();
-
-        $(".chat_list").on('click', function () {
-            $(".chat_list").removeClass("active_chat")
-            $(this).addClass("active_chat")
-            $("#username").html("Talking to <strong>" + $(this).find(".chat_ib").text() + "</strong>");
-            $(".mesgs").show();
-        })
-        $(".msg_send_btn").on("click", function () {
-            sendMessage();
-        })
-        $(".write_msg").keyup(function (event) {
-            var data = $(".write_msg").val();
-            if (data == null || data == "") {
-                socket.emit('stoptyping', {
-                    from: myname
-                });
-                return;
-            }
-            socket.emit('typing', {
-                from: myname
-            });
-            if (event.which == 13) {
-                sendMessage()
-            }
-        })
-
-        function sendMessage() {
-            var data = $(".write_msg").val();
-            socket.emit('message', {
-                from: myname,
-                to: username,
-                msg: data
-            });
-            $(".write_msg").val("");
+    var username = null;
+    var myname = '<%= user %>';
+    var socket = io('http://localhost:3000', {
+        query: {
+            username: '<%= user %>'
         }
     });
+
+    username = document.getElementById('chat_ib').innerText;
+
+    function showTypingBar() {
+        const typingBar = document.getElementById('typingBar');
+        typingBar.style.display = 'block';
+    }
+
+    function hideTypingBar() {
+        const typingBar = document.getElementById('typingBar');
+        typingBar.style.display = 'none';
+    }
+
+    function addNewUserToList(name, id) {
+        const inbox = document.getElementById('inbox');
+    
+        var newUser = document.createElement('div');
+        newUser.classList.add('chat_list');
+        newUser.innerHTML = `
+            <div class="chat_people">
+                <div class="chat_img"> <img src="https://ptetutorials.com/images/user-profile.png" alt="sunil">
+                </div>
+                <div class="chat_ib">
+                    <h5 id="chat_ib">
+                        ${name}
+                    </h5>
+                </div>
+                <input type="hidden" class="u" value="${id}" />
+            </div>
+        `;
+        inbox.appendChild(newUser);
+    };
+
+    function outgoingMessageShow(message) {
+        const msgBlock = document.getElementById('msg_history');
+        const parent = document.createElement('div');
+
+        msgBlock.classList.add('outgoing_msg');
+        msgBlock.innerHTML = `
+                <div class="sent_msg">
+                    <p>${message}</p>
+                    <span class="time_date"> ${moment().fromNow()}</span>
+                </div>
+            `;
+        parent.appendChild(msgBlock);
+    };
+
+    function ingoingMessageShow(message) {
+        const msgBlock = document.getElementById('msg_history');
+        const parent = document.createElement('div');
+
+        msgBlock.classList.add('incoming_msg');
+        msgBlock.innerHTML = `
+            <div class="incoming_msg_img"><img src="https://ptetutorials.com/images/user-profile.png" alt="${data.from}">
+                <span class="username">${username}</span>
+            </div>
+            <div class="received_msg">
+                <div class="received_withd_msg">
+                    <p>${message}</p>
+                    <span class="time_date"> ${moment().fromNow()}</span>
+                </div>
+            </div>
+        `;
+        parent.appendChild(msgBlock);    
+    };
+    
+    socket.on('typing', function (data) {
+        console.log('ontyping');
+        if (myname != data.from) {
+            showTypingBar();
+        }
+    });
+
+    socket.on('stoptyping', function (data) {
+        console.log('onstoptyping');
+        if (myname != data.from) {
+            hideTypingBar()
+        }
+    });
+
+    socket.on('message', function (data) {
+        console.log('onMessage');
+        if (myname.trim() == data.from.trim()) {
+            outgoingMessageShow(data.msg);
+        }
+        else if (myname.trim() == data.to.trim()) {
+            ingoingMessageShow(data.msg);
+        }
+
+        hideTypingBar();
+    });
+
+    socket.on('newuser', function (data) {
+        console.log('onnewuser');
+        console.log('new user joined: ', data, `my name: ${username}`);
+        if (data.name != username) {
+            addNewUser(data.name, data.id);
+        }
+    });
+
+    hideTypingBar();
+
+    // TODO: 
+    // Настроить для каждого chat_list Event Listener.
+    const chat_listDiv = document.getElementById('chat_list');
+
+    chat_listDiv.addEventListener('click', (e) => {
+        e.preventDefault();
+
+        chat_listDiv.classList.remove('active_chat');
+        chat_listDiv.classList.add('active_chat');
+        document.getElementById('username').innerHTML = `Talking to <strong>${username}</strong>`;
+        document.getElementById('messages').style.display = 'block';
+    });
+
+    document.getElementById('msg_send_btn').addEventListener('click', (e) => {
+        sendMessage();
+    });
+
+    // Send Typing/StopTyping on message field focus:
+    document.getElementById('msgInput').addEventListener('focus', (e) => {
+        var data = document.getElementById('msgInput').value;
+        if (data == null || data == "") {
+            socket.emit('stoptyping', {
+                from: myname
+            });
+        }
+
+        socket.emit('typing', {
+            from: myname
+        });
+    });
+
+    function sendMessage() {
+        const data = document.getElementById('msgInput').value;
+
+        socket.emit('message', {
+            from: myname,
+            to: username,
+            msg: data
+        });
+
+        document.getElementById('msgInput').value = '';
+    }
 </script>
