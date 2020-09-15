@@ -2,7 +2,7 @@ const app = require('express')();
 const path = require('path');
 
 const config = require('./settings');
-const socketController = require('./contollers/sockets');
+const socketController = require('./controllers/sockets');
 
 const indexRouter = require('./routes/index');
 const usersRouter = require('./routes/users');
@@ -36,8 +36,6 @@ io.on('connection', (client) => {
   let token = client.handshake.query.username;
   
   client.on('disconnect', () => {
-    console.log('user disconnected')
-
     users = users.filter(function(item) {
       return item.id !== client.id
     });
