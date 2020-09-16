@@ -1,0 +1,277 @@
+<div class="messaging">
+    <div class="inbox_msg">
+        <div class="inbox_people">
+            <div class="headind_srch">
+                <div class="recent_heading">
+                    <h4>Recent</h4>
+                </div>
+                <div class="srch_bar">
+                    <div class="stylish-input-group">
+                        <input type="text" class="search-bar" placeholder="Search">
+                        <span class="input-group-addon">
+                            <button type="button"> <i class="fa fa-search" aria-hidden="true"></i> </button>
+                        </span> </div>
+                </div>
+            </div>
+            <div class="inbox_chat">
+                <% for (var i=0; i< users.length; i++){ %>
+                <% if(users[i].name!=user) { %>
+                <div class="chat_list">
+                    <div class="chat_people">
+                        <div class="chat_img"> <img src="https://ptetutorials.com/images/user-profile.png" alt="sunil">
+                        </div>
+                        <div class="chat_ib">
+                            <h5 id="chat_ib">
+                                <%= users[i].name %>
+                            </h5>
+                        </div>
+                        <input type="hidden" class="u" value="<%= users[i].id %>" />
+                    </div>
+                </div>
+                <% } %>
+                <% } %>
+            </div>
+        </div>
+        <div id="messages" class="mesgs" style="display:none">
+
+            <div id="msg_history" class="msg_history">
+                <div class="col-12 mb-3 pt-0 mt-0">
+                    <span id="username"></span>
+                </div>
+            </div>
+            <div id="type_msg" class="type_msg">
+                <span id="typingBar" class="pencil_anim" style="display:none">Typing.....</span>
+                <div class="input_msg_write">
+                    <input type="text" id="msgInput" class="write_msg" placeholder="Type a message"
+                        style="border:0; outline: none;" />
+                    <button id="msg_send_btn" class="msg_send_btn" type="button">
+                        <i class="fa fa-paper-plane-o" aria-hidden="true"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="/js/socket.io.js"></script>
+<script src="/js/moment.min.js"></script>
+<script>
+    const chat_listDivs = Array.from(document.getElementsByClassName('chat_list'));
+
+    var users = []; // Users who online
+    var messageHistoty = [];
+
+    var currInterlocutorName;
+    var myname = '<%= user %>';
+    const socket = io('http://localhost:3000', {
+        query: {
+            username: '<%= user %>'
+        }
+    });
+
+    addListenersToUsersInList();
+    addListenerToSendMessageBtn();
+    addListenerToTypingBar();
+
+    function showTypingBar() {
+        const typingBar = document.getElementById('typingBar');
+        typingBar.style.display = 'block';
+    }
+
+    function hideTypingBar() {
+        const typingBar = document.getElementById('typingBar');
+        typingBar.style.display = 'none';
+    };
+
+    function formOutMessage(text) {
+        const msg = document.createElement('div');
+
+        msg.classList.add('outgoing_msg');
+        msg.classList.add('msg');
+        msg.innerHTML = `
+                <div class="sent_msg">
+                    <p>${message}</p>
+                    <span class="time_date"> ${moment().fromNow()}</span>
+                </div>
+        `;
+
+        return msg;
+    };
+
+    function formInMessage(from, text) {
+        const msg = document.createElement('div');
+
+        msg.classList.add('incoming_msg');
+        msg.classList.add('msg');
+        msg.innerHTML = `
+            <div class="incoming_msg_img"><img src="https://ptetutorials.com/images/user-profile.png" alt="${from}">
+                <span class="username">${from}</span>
+            </div>
+            <div class="received_msg">
+                <div class="received_withd_msg">
+                    <p>${message}</p>
+                    <span class="time_date"> ${moment().fromNow()}</span>
+                </div>
+            </div>
+        `;
+
+        return msg;
+    }
+
+    function createOutgoingMessage(message) {
+        const parent = document.getElementById('msg_history');
+        const newMsg = formOutMessage(message);
+        parent.appendChild(newMsg);
+    };
+
+    function createIngoingMessage(from, message) {
+        const parent = document.getElementById('msg_history');
+        const newMsg = formInMessage(from, messages);
+        parent.appendChild(newMsg);
+    };
+
+    function clearMessagesBlock() {
+        const messages = Array.from(document.getElementsByClassName('msg'));
+
+        messages.forEach(msg => {
+            msg.remove();
+        });
+    };
+
+    function createMessage(type, name) {
+        if (type === 'out') {
+            createOutgoingMessage(msg.text);
+        }
+        else if (type === 'in') {
+            createIngoingMessage(name, msg.text)
+        }
+    };
+
+    function loadMessageHistory(name) {
+        messageHistoty.forEach(msg => {
+            if (msg.interlocutorName === name) {
+                createMessage(msg.type, name);
+            }
+        });
+    };
+
+    function removeClassFromElements(elements, className) {
+        elements.forEach(div => {
+            div.classList.remove(className);
+        });
+    };
+
+    function changeMessageHistory(currDiv) {
+        // Deleting .active_chat from each people in list except the one clicked.
+        const chats = chat_listDivs.splice(chats.indexOf(currDiv), 1);
+
+        removeClassFromElements(chats, 'active_chat');
+
+        clearMessagesBlock();
+        loadMessageHistory(currInterlocutorName);
+
+        document.getElementById('username').innerHTML = `Talking to <strong>${interlocutorName}</strong>`;
+        document.getElementById('messages').style.display = 'block';
+    };
+
+    function addListenersToUsersInList() {
+        chat_listDivs.forEach(div => {
+            div.addEventListener('click', (e) => {
+                e.preventDefault();
+                const interlocutorName = div.children[0].children[1].innerText.trim();
+
+                if (!(interlocutorName === currInterlocutorName)) {
+                    currInterlocutorName = interlocutorName;
+                    div.classList.add('active_chat');
+
+                    changeMessageHistory(div);
+                }
+            });
+        });
+    };
+
+    function addListenerToSendMessageBtn() {
+        document.getElementById('msg_send_btn').addEventListener('click', (e) => {
+            sendMessage();
+        });
+    };
+
+    function addListenerToTypingBar() {
+        // Send Typing/StopTyping on message field focus:
+        document.getElementById('msgInput').addEventListener('focus', (e) => {
+            var data = document.getElementById('msgInput').value;
+            if (data == null || data == "") {
+                socket.emit('stoptyping', {
+                    from: myname
+                });
+            }
+
+            socket.emit('typing', {
+                from: myname
+            });
+        });
+    };        
+
+    function sendMessage() {
+        const touser = document.querySelector('.active_chat').children[0].children[1].innerText;
+        const data = document.getElementById('msgInput').value;
+
+        socket.emit('message', {
+            from: myname,
+            to: touser,
+            msg: data
+        });
+
+        document.getElementById('msgInput').value = '';
+    };
+
+    function formMessageObjectByType(data, type) {
+        const date = new Date();
+        const time = `${date.getHours()}/${date.getMinutes()}/${date.getSeconds()}`;
+
+        const message = {
+            interlocutorName: data.to.trim(),
+            type: type,
+            text: data.msg,
+            time: time
+        };
+
+        return message;
+    };
+
+    socket.on('typing', function (data) {
+        if (myname != data.from) {
+            showTypingBar();
+        }
+    });
+
+    socket.on('stoptyping', function (data) {
+        if (myname != data.from) {
+            hideTypingBar()
+        }
+    });
+
+    socket.on('message', function (data) {
+        if (myname.trim() == data.from.trim()) {
+            const message = formMessageObjectByType(data, 'out');
+
+            messageHistoty.push(message);
+
+            createOutgoingMessage(data.msg);
+        }
+        else if (myname.trim() == data.to.trim()) {
+            const message = formMessageObjectByType(data, 'in');
+
+            messageHistoty.push(message);
+
+            createIngoingMessage(data.from, data.msg);
+        }
+
+        hideTypingBar();
+    });
+
+    socket.on('newuser', function (data) {
+        //
+    });
+
+</script>
