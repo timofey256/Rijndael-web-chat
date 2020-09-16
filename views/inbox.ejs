@@ -69,6 +69,10 @@
         }
     });
 
+    addListenersToUsersInList();
+    addListenerToSendMessageBtn();
+    addListenerToTypingBar();
+
     function showTypingBar() {
         const typingBar = document.getElementById('typingBar');
         typingBar.style.display = 'block';
@@ -170,19 +174,43 @@
         document.getElementById('messages').style.display = 'block';
     };
 
-    chat_listDivs.forEach(div => {
-        div.addEventListener('click', (e) => {
-            e.preventDefault();
-            const interlocutorName = div.children[0].children[1].innerText.trim();
+    function addListenersToUsersInList() {
+        chat_listDivs.forEach(div => {
+            div.addEventListener('click', (e) => {
+                e.preventDefault();
+                const interlocutorName = div.children[0].children[1].innerText.trim();
 
-            if (!(interlocutorName === currInterlocutorName)) {
-                currInterlocutorName = interlocutorName;
-                div.classList.add('active_chat');
+                if (!(interlocutorName === currInterlocutorName)) {
+                    currInterlocutorName = interlocutorName;
+                    div.classList.add('active_chat');
 
-                changeMessageHistory(div);
-            }
+                    changeMessageHistory(div);
+                }
+            });
         });
-    });
+    };
+
+    function addListenerToSendMessageBtn() {
+        document.getElementById('msg_send_btn').addEventListener('click', (e) => {
+            sendMessage();
+        });
+    };
+
+    function addListenerToTypingBar() {
+        // Send Typing/StopTyping on message field focus:
+        document.getElementById('msgInput').addEventListener('focus', (e) => {
+            var data = document.getElementById('msgInput').value;
+            if (data == null || data == "") {
+                socket.emit('stoptyping', {
+                    from: myname
+                });
+            }
+
+            socket.emit('typing', {
+                from: myname
+            });
+        });
+    };        
 
     function sendMessage() {
         const touser = document.querySelector('.active_chat').children[0].children[1].innerText;
@@ -197,24 +225,19 @@
         document.getElementById('msgInput').value = '';
     };
 
+    function formMessageObjectByType(data, type) {
+        const date = new Date();
+        const time = `${date.getHours()}/${date.getMinutes()}/${date.getSeconds()}`;
 
-    document.getElementById('msg_send_btn').addEventListener('click', (e) => {
-        sendMessage();
-    });
+        const message = {
+            interlocutorName: data.to.trim(),
+            type: type,
+            text: data.msg,
+            time: time
+        };
 
-    // Send Typing/StopTyping on message field focus:
-    document.getElementById('msgInput').addEventListener('focus', (e) => {
-        var data = document.getElementById('msgInput').value;
-        if (data == null || data == "") {
-            socket.emit('stoptyping', {
-                from: myname
-            });
-        }
-
-        socket.emit('typing', {
-            from: myname
-        });
-    });
+        return message;
+    };
 
     socket.on('typing', function (data) {
         if (myname != data.from) {
@@ -230,35 +253,16 @@
 
     socket.on('message', function (data) {
         if (myname.trim() == data.from.trim()) {
-            const date = new Date();
-            const time = `${date.getHours()}/${date.getMinutes()}/${date.getSeconds()}`;
-
-            const message = {
-                interlocutorName: data.to.trim(),
-                type: 'out',
-                text: data.msg,
-                time: time
-            };
+            const message = formMessageObjectByType(data, 'out');
 
             messageHistoty.push(message);
-
-            console.log('new message: ', message);
 
             createOutgoingMessage(data.msg);
         }
         else if (myname.trim() == data.to.trim()) {
-            const date = new Date();
-            const time = `${date.getHours()}/${date.getMinutes()}/${date.getSeconds()}`;
-
-            const message = {
-                interlocutorName: data.from.trim(),
-                type: 'in',
-                text: data.msg,
-                time: time
-            };
+            const message = formMessageObjectByType(data, 'in');
 
             messageHistoty.push(message);
-            console.log('new message: ', message);
 
             createIngoingMessage(data.from, data.msg);
         }
@@ -267,7 +271,7 @@
     });
 
     socket.on('newuser', function (data) {
-
+        //
     });
 
 </script>
