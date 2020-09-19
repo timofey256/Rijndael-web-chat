@@ -2,91 +2,11 @@ addListenersToContacts();
 addListenerToSendMessageBtn();
 addListenerToTypingBar();
 
-function showTypingBar() {
-    const typingBar = document.getElementById('typingBar');
-    typingBar.style.display = 'block';
-}
-
-function hideTypingBar() {
-    const typingBar = document.getElementById('typingBar');
-    typingBar.style.display = 'none';
-};
-
-function formOutMessage(text) {
-    const msg = document.createElement('div');
-
-    msg.classList.add('outgoing_msg');
-    msg.classList.add('msg');
-    msg.innerHTML = `
-                    <div class="sent_msg">
-                        <p>${text}</p>
-                        <span class="time_date"> ${moment().fromNow()}</span>
-                    </div>
-            `;
-
-    return msg;
-};
-
-function formInMessage(from, text) {
-    const msg = document.createElement('div');
-
-    msg.classList.add('incoming_msg');
-    msg.classList.add('msg');
-    msg.innerHTML = `
-                <div class="incoming_msg_img"><img src="https://ptetutorials.com/images/user-profile.png" alt="${from}">
-                    <span class="username">${from}</span>
-                </div>
-                <div class="received_msg">
-                    <div class="received_withd_msg">
-                        <p>${text}</p>
-                        <span class="time_date"> ${moment().fromNow()}</span>
-                    </div>
-                </div>
-            `;
-
-    return msg;
-}
-
-function createOutgoingMessage(message) {
-    const parent = document.getElementById('msg_history');
-    const newMsg = formOutMessage(message);
-    parent.appendChild(newMsg);
-};
-
-function createIngoingMessage(from, message) {
-    const parent = document.getElementById('msg_history');
-    const newMsg = formInMessage(from, message);
-    parent.appendChild(newMsg);
-};
-
-function clearMessagesBlock() {
-    const messages = Array.from(document.getElementsByClassName('msg'));
-
-    messages.forEach(msg => {
-        msg.remove();
-    });
-};
-
-function createMessage(type, name, text) {
-    if (type === 'out') {
-        createOutgoingMessage(text);
-    }
-    else if (type === 'in') {
-        createIngoingMessage(name, text)
-    }
-};
-
 function loadMessageHistory(name) {
     messageHistory.forEach(msg => {
         if (msg.interlocutorName === name) {
             createMessage(msg.type, name, msg.text);
         }
-    });
-};
-
-function removeClassFromElements(elements, className) {
-    elements.forEach(div => {
-        div.classList.remove(className);
     });
 };
 
@@ -129,8 +49,6 @@ function addListenerToSendMessageBtn() {
         const text = document.getElementById('msgInput').value;
         createOutgoingMessage(text);
 
-        console.log(`my id: '${socket.id}'`);
-
         sendMessage();
     });
 };
@@ -151,15 +69,10 @@ function addListenerToTypingBar() {
     });
 };
 
-function sendMessage() {
+// Send message data to server:
+function emitMessage() {
     const touser = document.querySelector('.active_chat').children[0].children[1].innerText;
     const text = document.getElementById('msgInput').value;
-
-    socket.emit('message', {
-        from: myname,
-        to: touser,
-        msg: text
-    });
 
     const data = {
         from: myname,
@@ -167,8 +80,16 @@ function sendMessage() {
         msg: text
     };
 
+    socket.emit('message', data);
+
+    return data
+};
+
+function sendMessage() {
+    const messageData = emitMessage();
+
     // Add message to message's history:
-    const message = formMessageObjectByType(data, 'out');
+    const message = formMessageObjectByType(messageData, 'out');
     messageHistory.push(message);
 
     document.getElementById('msgInput').value = '';
@@ -208,7 +129,9 @@ socket.on('message', function (data) {
 
         messageHistory.push(message);
 
-        createIngoingMessage(data.from, data.msg);
+        if (data.from.trim() === currInterlocutorName) {
+            createIngoingMessage(data.from, data.msg);
+        }
     }
 
     hideTypingBar();
