@@ -45,10 +45,17 @@ io.on('connection', (client) => {
     id: client.id,
     name: token
   });
+
+  client.on('message', (data) => {
+    users.forEach(cl => {
+        if (data.to.trim() === cl.name) {
+            io.to(cl.id).emit("message", data)
+        }
+    });
+  });
   
   socketController.onTyping(io, client);
   socketController.onStopTyping(io, client);
-  socketController.onMessage(io, client);
   socketController.onNewUserConnect(io, client, token);
 });
 

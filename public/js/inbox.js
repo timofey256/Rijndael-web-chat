@@ -77,7 +77,6 @@ function createMessage(type, name, text) {
 };
 
 function loadMessageHistory(name) {
-    console.log('message history: ', messageHistory);
     messageHistory.forEach(msg => {
         if (msg.interlocutorName === name) {
             createMessage(msg.type, name, msg.text);
@@ -127,6 +126,11 @@ function addListenersToContacts() {
 // Send message on button click: 
 function addListenerToSendMessageBtn() {
     document.getElementById('msg_send_btn').addEventListener('click', (e) => {
+        const text = document.getElementById('msgInput').value;
+        createOutgoingMessage(text);
+
+        console.log(`my id: '${socket.id}'`);
+
         sendMessage();
     });
 };
@@ -149,13 +153,23 @@ function addListenerToTypingBar() {
 
 function sendMessage() {
     const touser = document.querySelector('.active_chat').children[0].children[1].innerText;
-    const data = document.getElementById('msgInput').value;
+    const text = document.getElementById('msgInput').value;
 
     socket.emit('message', {
         from: myname,
         to: touser,
-        msg: data
+        msg: text
     });
+
+    const data = {
+        from: myname,
+        to: touser,
+        msg: text
+    };
+
+    // Add message to message's history:
+    const message = formMessageObjectByType(data, 'out');
+    messageHistory.push(message);
 
     document.getElementById('msgInput').value = '';
 };
@@ -189,14 +203,7 @@ socket.on('stoptyping', function (data) {
 });
 
 socket.on('message', function (data) {
-    if (myname.trim() == data.from.trim()) {
-        const message = formMessageObjectByType(data, 'out');
-
-        messageHistory.push(message);
-
-        createOutgoingMessage(data.msg);
-    }
-    else if (myname.trim() == data.to.trim()) {
+    if (myname.trim() == data.to.trim()) {
         const message = formMessageObjectByType(data, 'in');
 
         messageHistory.push(message);

@@ -10,12 +10,6 @@ function onStopTyping(io, clientSocket) {
     });
 };
 
-function onMessage(io, clientSocket) {
-    clientSocket.on('message', (data) => {
-        io.emit("message", data)
-    });
-};
-
 function onNewUserConnect(io, client, token) {
     io.emit("newuser", {
         id: client.id,
@@ -26,6 +20,5 @@ function onNewUserConnect(io, client, token) {
 module.exports = {
     onTyping,
     onStopTyping,
-    onMessage,
     onNewUserConnect
 }
