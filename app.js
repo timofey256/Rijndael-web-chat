@@ -39,7 +39,7 @@ io.on('connection', (client) => {
     users = users.filter(function(item) {
       return item.id !== client.id
     });
-});
+  });
 
   users.push({
     id: client.id,
