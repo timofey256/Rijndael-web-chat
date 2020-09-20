@@ -63,6 +63,18 @@ function clearMessagesBlock() {
     });
 };
 
+function showNewMessageOnConv(from) {
+    const contactsHTML = Array.from(document.querySelectorAll('.chat_list'));
+    
+    contactsHTML.forEach(contact => {
+        const name = contact.children[0].children[1].children[0].innerHTML.trim();
+        
+        if (name === from) {
+            contact.classList.add('new_message');
+        }
+    });
+}
+
 function createMessage(type, name, text) {
     if (type === 'out') {
         createOutgoingMessage(text);

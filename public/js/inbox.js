@@ -18,6 +18,7 @@ function changeMessageHistory(div) {
     removeClassFromElements(chat_listDivs, 'active_chat');
 
     div.classList.add('active_chat');
+    div.classList.remove('new_message')
     clearMessagesBlock();
     loadMessageHistory(currInterlocutorName);
 
@@ -131,6 +132,9 @@ socket.on('message', function (data) {
 
         if (data.from.trim() === currInterlocutorName) {
             createIngoingMessage(data.from, data.msg);
+        }
+        else {
+            showNewMessageOnConv(data.from.trim());
         }
     }
 
