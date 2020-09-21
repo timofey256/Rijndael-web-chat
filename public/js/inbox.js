@@ -31,16 +31,20 @@ function addListenersToContacts() {
     const chat_listDivs = Array.from(document.getElementsByClassName('chat_list'));
 
     chat_listDivs.forEach(div => {
-        div.addEventListener('click', (e) => {
-            e.preventDefault();
-            const interlocutorName = div.children[0].children[1].innerText.trim();
+        addListenerToContact(div);
+    });
+};
 
-            if (!(interlocutorName === currInterlocutorName)) {
-                currInterlocutorName = interlocutorName;
+function addListenerToContact(contact) {
+    contact.addEventListener('click', e => {
+        e.preventDefault();
+        const interlocutorName = contact.children[0].children[1].innerText.trim();
 
-                changeMessageHistory(div);
-            }
-        });
+        if (!(interlocutorName === currInterlocutorName)) {
+            currInterlocutorName = interlocutorName;
+
+            changeMessageHistory(contact);
+        }
     });
 };
 
@@ -68,6 +72,30 @@ function addListenerToTypingBar() {
             from: myname
         });
     });
+};
+
+// On new user connect:
+function addContactToList(data) {
+    const inbox = document.querySelector('.inbox_chat');
+
+    const contact = document.createElement('div');
+    contact.classList.add('chat_list');
+    contact.innerHTML = `
+        <div class="chat_people">
+            <div class="chat_img"> <img src="https://ptetutorials.com/images/user-profile.png" alt="sunil">
+            </div>
+            <div class="chat_ib">
+                <h5 id="chat_ib">
+                    ${data.name}
+                </h5>
+            </div>
+            <input type="hidden" class="u" value="${data.id}" />
+        </div>
+    `;
+
+    inbox.appendChild(contact);
+
+    return contact;
 };
 
 // Send message data to server:
@@ -141,48 +169,27 @@ socket.on('message', function (data) {
     hideTypingBar();
 });
 
-socket.on('newuser', function (data) {
+function isNewUserExist(newUserName) {
     const contacts = Array.from(document.getElementsByClassName('chat_list'));
-    console.log(contacts)
     var isContactExist = false;
     
     contacts.forEach(contact => {
         const name = contact.children[0].children[1].innerText.trim();
-        console.log(`name: ${name}, data.name: ${data.name}`);
-        if (name === data.name) {
+
+        if (name === newUserName) {
             isContactExist = true;
         }
     })
 
+    return isContactExist;
+};
+
+socket.on('newuser', function (data) {
+    const isContactExist = isNewUserExist(data.name);
+
     if ((data.name !== myname) && (!isContactExist)) {
-        const inbox = document.querySelector('.inbox_chat');
+        const contact = addContactToList(data);
 
-        const contact = document.createElement('div');
-        contact.classList.add('chat_list');
-        contact.innerHTML = `
-            <div class="chat_people">
-                <div class="chat_img"> <img src="https://ptetutorials.com/images/user-profile.png" alt="sunil">
-                </div>
-                <div class="chat_ib">
-                    <h5 id="chat_ib">
-                        ${data.name}
-                    </h5>
-                </div>
-                <input type="hidden" class="u" value="${data.id}" />
-            </div>
-        `;
-
-        contact.addEventListener('click', e => {
-            e.preventDefault();
-            const interlocutorName = contact.children[0].children[1].innerText.trim();
-
-            if (!(interlocutorName === currInterlocutorName)) {
-                currInterlocutorName = interlocutorName;
-
-                changeMessageHistory(contact);
-            }
-        })
-
-        inbox.appendChild(contact);
+        addListenerToContact(contact);
     };
 });
