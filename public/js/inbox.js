@@ -142,5 +142,47 @@ socket.on('message', function (data) {
 });
 
 socket.on('newuser', function (data) {
-    //
+    const contacts = Array.from(document.getElementsByClassName('chat_list'));
+    console.log(contacts)
+    var isContactExist = false;
+    
+    contacts.forEach(contact => {
+        const name = contact.children[0].children[1].innerText.trim();
+        console.log(`name: ${name}, data.name: ${data.name}`);
+        if (name === data.name) {
+            isContactExist = true;
+        }
+    })
+
+    if ((data.name !== myname) && (!isContactExist)) {
+        const inbox = document.querySelector('.inbox_chat');
+
+        const contact = document.createElement('div');
+        contact.classList.add('chat_list');
+        contact.innerHTML = `
+            <div class="chat_people">
+                <div class="chat_img"> <img src="https://ptetutorials.com/images/user-profile.png" alt="sunil">
+                </div>
+                <div class="chat_ib">
+                    <h5 id="chat_ib">
+                        ${data.name}
+                    </h5>
+                </div>
+                <input type="hidden" class="u" value="${data.id}" />
+            </div>
+        `;
+
+        contact.addEventListener('click', e => {
+            e.preventDefault();
+            const interlocutorName = contact.children[0].children[1].innerText.trim();
+
+            if (!(interlocutorName === currInterlocutorName)) {
+                currInterlocutorName = interlocutorName;
+
+                changeMessageHistory(contact);
+            }
+        })
+
+        inbox.appendChild(contact);
+    };
 });
