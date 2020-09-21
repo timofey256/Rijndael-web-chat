@@ -8,7 +8,6 @@ a {
   color: #00B7FF;
 }
 
-
 .container {
   max-width: 1170px;
   margin: auto;
@@ -35,7 +34,6 @@ img {
 .top_spac {
   margin: 20px 0 0;
 }
-
 
 .recent_heading {
   float: left;
@@ -119,6 +117,11 @@ img {
   padding: 18px 16px 10px;
 }
 
+.chat_list:hover {
+  cursor: pointer;
+  background-color: #e7e7e7;
+}
+
 .inbox_chat {
   height: 90vh;
   overflow-y: scroll;
@@ -139,8 +142,28 @@ img {
   
   padding: 5px 5px 5px 5px;
   border-radius: 6px;
-
+  background: #dadada;
   background-color: #ebebeb;
+
+  -webkit-animation: pulsate 2s linear infinite;
+  -moz-animation: pulsate 2s linear infinite;
+  animation: pulsate 2s linear infinite;
+}
+
+@-webkit-keyframes pulsate {
+  0% {background: #eeeeee}
+  50% {background: #dadada}
+  100% {background: #eeeeee}
+}
+@-moz-keyframes pulsate {
+  0% {background: #eeeeee}
+  50% {background: #dadada}
+  100% {background: #eeeeee}
+}
+@keyframes pulsate {
+  0% {background: #eeeeee}
+  50% {background: #dadada}
+  100% {background: #eeeeee}
 }
 
 .incoming_msg_img {
