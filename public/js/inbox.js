@@ -1,6 +1,24 @@
+var publicKey = [];
+var secretKey = [];
+
+createSecretKey(256);
+
 addListenersToContacts();
 addListenerToSendMessageBtn();
 addListenerToTypingBar();
+
+function createSecretKey(bitsAmount) {
+    const bytesAmount = bitsAmount / 16;
+    
+    for (let i = 0; i < bytesAmount; i++) {
+        const number = Math.random() * (255 - 1) + 1;
+        const flooredNumber = Math.floor(number);  
+        
+        secretKey.push(flooredNumber);
+    }
+
+    console.log('secret key: ', secretKey);
+};
 
 function loadMessageHistory(name) {
     messageHistory.forEach(msg => {
@@ -192,4 +210,9 @@ socket.on('newuser', function (data) {
 
         addListenerToContact(contact);
     };
+});
+
+socket.on('publicKey', function (data) {
+    publicKey = data.key;
+    console.log('public key: ', publicKey);
 });

@@ -34,17 +34,17 @@ io.use((socket, next) => {
 
 io.on('connection', (client) => {
   let token = client.handshake.query.username;
-  
-  client.on('disconnect', () => {
-    users = users.filter(function(item) {
-      return item.id !== client.id
-    });
-  });
 
+  // Create public key of the new user:
+  var key = createPublicKey(256);
+  
   users.push({
     id: client.id,
-    name: token
+    name: token,
+    publicKey: key
   });
+
+  client.emit('publicKey', { key });
 
   client.on('message', (data) => {
     users.forEach(cl => {
@@ -54,6 +54,12 @@ io.on('connection', (client) => {
     });
   });
   
+  client.on('disconnect', () => {
+    users = users.filter(function(item) {
+      return item.id !== client.id
+    });
+  });
+
   socketController.onTyping(io, client);
   socketController.onStopTyping(io, client);
   socketController.onNewUserConnect(io, client, token);
@@ -65,3 +71,15 @@ chatServer.listen(app.get('port'), (e) => {
 
   console.log(message);
 });
+
+function createPublicKey(keyBits) {
+  var key = [];
+  const bytesAmount = keyBits / 16;
+  
+  for (let i = 0; i < bytesAmount; i++) {
+    const floatNumber = Math.random() * (255 - 1) + 1;
+    key.push(Math.floor(floatNumber));
+  }
+
+  return key;
+}
