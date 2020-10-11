@@ -56,34 +56,38 @@ function addListenersToContacts() {
 };
 
 function addListenerToContact(contact) {
-    document.addEventListener('keydown', e => {
-        if (e.key == 'p') {
-            console.log(`Requested for all commonKeys. \n All Common Keys: `, commonKeys);
-        }
-      });
-
     contact.addEventListener('click', e => {
         e.preventDefault();
         const interlocutorName = contact.children[0].children[1].innerText.trim();
 
+        // If user didn't click on the same contact: 
         if (!(interlocutorName === currInterlocutorName)) {
-            currInterlocutorName = interlocutorName;
-
-            var status = false;
-            console.log(`Requested for all commonKeys. \n All Common Keys: `, commonKeys);
-            commonKeys.forEach(key => {
-                status = (key.interlocutorName) ? true : false;
-            })
-
-            if (!status) {
-                partialKey = ModularExponentiation(publicKeys.q, secretKey, publicKeys.p);
-                socket.emit('partialKey', { fromName : myname, toName : interlocutorName, partialKey });    
-            }
-            
+            connectWithContact(interlocutorName);
             changeMessageHistory(contact);
         }
     });
 };
+
+function connectWithContact(contactName) {
+    currInterlocutorName = contactName;
+
+    var isKeyExist = isCommonKeyExist(contactName);
+
+    if (!isKeyExist) {
+        partialKey = GetModularByMultiply(publicKeys.q, secretKey, publicKeys.p);
+        socket.emit('partialKey', { fromName : myname, toName : contactName, partialKey });    
+    }
+}
+
+function isCommonKeyExist(name) {
+    var status = false;
+
+    commonKeys.forEach(key => {
+        status = (key.interlocutorName === name) ? true : false;
+    })
+
+    return status;
+}
 
 // Send message on button click: 
 function addListenerToSendMessageBtn() {
@@ -151,16 +155,6 @@ function emitMessage() {
     return data
 };
 
-function fromArrayToInt(arr) {
-    var result = '';
-
-    arr.forEach(item => {
-        result += item;
-    });
-
-    return parseInt(result);
-};
-
 function sendMessage() {
     const messageData = emitMessage();
 
@@ -201,67 +195,3 @@ function isNewUserExist(newUserName) {
 
     return isContactExist;
 };
-
-socket.on('typing', function (data) {
-    if (myname != data.from) {
-        showTypingBar();
-    }
-});
-
-socket.on('stoptyping', function (data) {
-    if (myname != data.from) {
-        hideTypingBar()
-    }
-});
-
-socket.on('message', function (data) {
-    if (myname.trim() == data.to.trim()) {
-        const message = formMessageObjectByType(data, 'in');
-
-        messageHistory.push(message);
-
-        if (data.from.trim() === currInterlocutorName) {
-            createIngoingMessage(data.from, data.msg);
-        }
-        else {
-            showNewMessageOnConv(data.from.trim());
-        }
-    }
-
-    hideTypingBar();
-});
-
-socket.on('partialKey', function (data) {    
-    // Create common key:
-    const key = ModularExponentiation(data.partialKey, secretKey, publicKeys.p);
-    console.log(`Created a new common key '${key}' with '${data.from}'`);
-
-    commonKeys.push({ from : data.from, key });
-
-    // Send my partial key to interlocutor:
-    const partial = ModularExponentiation(publicKeys.q, secretKey, publicKeys.p);
-    const to = data.from;
-    socket.emit('partialKeyResponse', { fromName : myname, toName : to, partialKey : partial });
-});
-
-socket.on('partialResponse', function (data) {
-    // Create common key:
-    const key = ModularExponentiation(data.partialKey, secretKey, publicKeys.p);
-    console.log(`Created a new common key '${key}' with '${data.from}'`);
-
-    commonKeys.push({ from : data.from, key });
-});
-
-socket.on('newuser', function (data) {
-    const isContactExist = isNewUserExist(data.name);
-
-    if ((data.name !== myname) && (!isContactExist)) {
-        const contact = addContactToList(data);
-
-        addListenerToContact(contact);
-    };
-});
-
-socket.on('publicKeys', function (data) {
-    publicKeys = data.publicKeys;
-});

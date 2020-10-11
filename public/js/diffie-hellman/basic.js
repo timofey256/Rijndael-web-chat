@@ -1,6 +1,4 @@
 function ModularExponentiation(a, b, n) {
-    console.log(`g: ${a}, p: ${b}, s: ${n}`);
-
     a = a % n;
     var result = 1;
     var x = a;
@@ -18,13 +16,5 @@ function ModularExponentiation(a, b, n) {
         x = x % n;
     }
 
-    console.log(`Partial equals '${result}'`);
-
     return result;
-};  
-
-function computeCommon(module, partial, secret) {
-    console.log(`partial: ${partial}, secret: ${secret}`);
-    console.log('common key: ', Math.pow(partial, secret) % module);
-    return Math.pow(partial, secret) % module;
-}
+}; 
