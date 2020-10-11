@@ -1,23 +1,25 @@
-var publicKey = [];
-var secretKey = [];
+var publicKeys = [];
+var secretKey = createKey(32);
 
-createSecretKey(256);
+var commonKeys = [];
 
 addListenersToContacts();
 addListenerToSendMessageBtn();
 addListenerToTypingBar();
 
-function createSecretKey(bitsAmount) {
+function createKey(bitsAmount) {
     const bytesAmount = bitsAmount / 16;
+    var key = '';
     
     for (let i = 0; i < bytesAmount; i++) {
-        const number = Math.random() * (255 - 1) + 1;
+        const number = Math.random() * (10 - 0) + 0;
         const flooredNumber = Math.floor(number);  
         
-        secretKey.push(flooredNumber);
+        key += flooredNumber;
     }
 
-    console.log('secret key: ', secretKey);
+    key = parseInt(key);
+    return key;
 };
 
 function loadMessageHistory(name) {
@@ -54,6 +56,12 @@ function addListenersToContacts() {
 };
 
 function addListenerToContact(contact) {
+    document.addEventListener('keydown', e => {
+        if (e.key == 'p') {
+            console.log(`Requested for all commonKeys. \n All Common Keys: `, commonKeys);
+        }
+      });
+
     contact.addEventListener('click', e => {
         e.preventDefault();
         const interlocutorName = contact.children[0].children[1].innerText.trim();
@@ -61,6 +69,17 @@ function addListenerToContact(contact) {
         if (!(interlocutorName === currInterlocutorName)) {
             currInterlocutorName = interlocutorName;
 
+            var status = false;
+            console.log(`Requested for all commonKeys. \n All Common Keys: `, commonKeys);
+            commonKeys.forEach(key => {
+                status = (key.interlocutorName) ? true : false;
+            })
+
+            if (!status) {
+                partialKey = ModularExponentiation(publicKeys.q, secretKey, publicKeys.p);
+                socket.emit('partialKey', { fromName : myname, toName : interlocutorName, partialKey });    
+            }
+            
             changeMessageHistory(contact);
         }
     });
@@ -132,6 +151,16 @@ function emitMessage() {
     return data
 };
 
+function fromArrayToInt(arr) {
+    var result = '';
+
+    arr.forEach(item => {
+        result += item;
+    });
+
+    return parseInt(result);
+};
+
 function sendMessage() {
     const messageData = emitMessage();
 
@@ -156,6 +185,21 @@ function formMessageObjectByType(data, type) {
     };
 
     return message;
+};
+
+function isNewUserExist(newUserName) {
+    const contacts = Array.from(document.getElementsByClassName('chat_list'));
+    var isContactExist = false;
+    
+    contacts.forEach(contact => {
+        const name = contact.children[0].children[1].innerText.trim();
+
+        if (name === newUserName) {
+            isContactExist = true;
+        }
+    })
+
+    return isContactExist;
 };
 
 socket.on('typing', function (data) {
@@ -187,20 +231,26 @@ socket.on('message', function (data) {
     hideTypingBar();
 });
 
-function isNewUserExist(newUserName) {
-    const contacts = Array.from(document.getElementsByClassName('chat_list'));
-    var isContactExist = false;
-    
-    contacts.forEach(contact => {
-        const name = contact.children[0].children[1].innerText.trim();
+socket.on('partialKey', function (data) {    
+    // Create common key:
+    const key = ModularExponentiation(data.partialKey, secretKey, publicKeys.p);
+    console.log(`Created a new common key '${key}' with '${data.from}'`);
 
-        if (name === newUserName) {
-            isContactExist = true;
-        }
-    })
+    commonKeys.push({ from : data.from, key });
 
-    return isContactExist;
-};
+    // Send my partial key to interlocutor:
+    const partial = ModularExponentiation(publicKeys.q, secretKey, publicKeys.p);
+    const to = data.from;
+    socket.emit('partialKeyResponse', { fromName : myname, toName : to, partialKey : partial });
+});
+
+socket.on('partialResponse', function (data) {
+    // Create common key:
+    const key = ModularExponentiation(data.partialKey, secretKey, publicKeys.p);
+    console.log(`Created a new common key '${key}' with '${data.from}'`);
+
+    commonKeys.push({ from : data.from, key });
+});
 
 socket.on('newuser', function (data) {
     const isContactExist = isNewUserExist(data.name);
@@ -212,7 +262,6 @@ socket.on('newuser', function (data) {
     };
 });
 
-socket.on('publicKey', function (data) {
-    publicKey = data.key;
-    console.log('public key: ', publicKey);
+socket.on('publicKeys', function (data) {
+    publicKeys = data.publicKeys;
 });

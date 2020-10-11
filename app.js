@@ -25,6 +25,9 @@ app.set('trust proxy', 1) // trust first proxy
 
 global.users = [];
 
+// Uses for creating general key in each conversation:
+const publicKeys = { p : 341171, q : 342379 };
+
 // Validate username:
 io.use((socket, next) => {
   let token = socket.handshake.query.username;
@@ -35,16 +38,38 @@ io.use((socket, next) => {
 io.on('connection', (client) => {
   let token = client.handshake.query.username;
 
-  // Create public key of the new user:
-  var key = createPublicKey(256);
-  
   users.push({
     id: client.id,
-    name: token,
-    publicKey: key
+    name: token
   });
 
-  client.emit('publicKey', { key });
+  client.emit('publicKeys', { publicKeys });
+
+  client.on('partialKey', (data) => {
+    const toName = data.toName;
+    const fromName = data.fromName;
+    const partialKey = data.partialKey;
+
+    users.forEach(user => {
+      if (user.name === toName) {
+        io.to(user.id).emit('partialKey', { from : fromName, partialKey });
+      };
+    });    
+  });
+
+  client.on('partialKeyResponse', (data) => {
+    const toName = data.toName;
+    const fromName = data.fromName;
+    const partialKey = data.partialKey;
+
+    console.log(`from: '${fromName}', to: '${toName}', partial: '${partialKey}'`);
+
+    users.forEach(user => {
+      if (user.name === toName) {
+        io.to(user.id).emit('partialResponse', { from : fromName, partialKey });
+      };
+    });    
+  })
 
   client.on('message', (data) => {
     users.forEach(cl => {
@@ -72,14 +97,21 @@ chatServer.listen(app.get('port'), (e) => {
   console.log(message);
 });
 
-function createPublicKey(keyBits) {
-  var key = [];
-  const bytesAmount = keyBits / 16;
-  
-  for (let i = 0; i < bytesAmount; i++) {
-    const floatNumber = Math.random() * (255 - 1) + 1;
-    key.push(Math.floor(floatNumber));
-  }
+// Function creates 'g' and 'p' numbers for Diffie-Hellman algorithm:
+function createPublicKeys(keyBits) {
+  var keys = [];
 
-  return key;
+  for (let j = 0; j < 2; j++) {
+    var key = [];
+    const bytesAmount = keyBits / 16;
+    
+    for (let i = 0; i < bytesAmount; i++) {
+      const floatNumber = Math.random() * (10 - 0) + 0;
+      key.push(Math.floor(floatNumber));
+    }
+
+    keys.push(key);
+  }
+    
+  return { g : keys[0], p : keys[1] };
 }
