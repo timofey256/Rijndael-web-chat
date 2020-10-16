@@ -141,19 +141,34 @@ function addContactToList(data) {
 
 // Send message data to server:
 function emitMessage() {
-    const touser = document.querySelector('.active_chat').children[0].children[1].innerText;
-    const text = document.getElementById('msgInput').value;
+    var touser = document.querySelector('.active_chat').children[0].children[1].innerText;
+    var text = document.getElementById('msgInput').value;
+
+    const keyToEncrypt = getCommonKeyByInterlocutor(touser);
+    const encrypted = encrypt(text, keyToEncrypt).toString();
 
     const data = {
         from: myname,
         to: touser,
-        msg: text
+        msg: encrypted
     };
 
     socket.emit('message', data);
 
     return data
 };
+
+function getCommonKeyByInterlocutor(name) {
+    var commonKey;
+    
+    commonKeys.forEach(key => {
+        if (key.from === name) {
+            commonKey = key.key;
+        }
+    });
+    
+    return commonKey;
+}
 
 function sendMessage() {
     const messageData = emitMessage();

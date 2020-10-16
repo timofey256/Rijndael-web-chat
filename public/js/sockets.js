@@ -12,8 +12,10 @@ socket.on('stoptyping', function (data) {
 
 socket.on('message', function (data) {
     if (myname.trim() == data.to.trim()) {
-        const message = formMessageObjectByType(data, 'in');
+        
+        data.msg = decrypt(data.msg, getCommonKeyByInterlocutor(data.from)).toString(CryptoJS.enc.Utf8);
 
+        const message = formMessageObjectByType(data, 'in');
         messageHistory.push(message);
 
         if (data.from.trim() === currInterlocutorName) {
@@ -30,9 +32,11 @@ socket.on('message', function (data) {
 socket.on('partialKey', function (data) {    
     // Create common key:
     const key = GetModularByMultiply(data.partialKey, secretKey, publicKeys.p);
-    console.log(`Created a new common key '${key}' with '${data.from}'`);
 
-    commonKeys.push({ from : data.from, key });
+    toSHA256(key)
+        .then(result => {
+            commonKeys.push({ from : data.from, key : result });
+        });
 
     // Send my partial key to interlocutor:
     const partial = GetModularByMultiply(publicKeys.q, secretKey, publicKeys.p);
@@ -43,9 +47,11 @@ socket.on('partialKey', function (data) {
 socket.on('partialResponse', function (data) {
     // Create common key:
     const key = GetModularByMultiply(data.partialKey, secretKey, publicKeys.p);
-    console.log(`Created a new common key '${key}' with '${data.from}'`);
 
-    commonKeys.push({ from : data.from, key });
+    toSHA256(key)
+        .then(result => {
+            commonKeys.push({ from : data.from, key : result });
+        });
 });
 
 socket.on('newuser', function (data) {
