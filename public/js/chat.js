@@ -1,3 +1,9 @@
+/**
+ * Uses for different front-end tasks
+ * such as show in/out message, show notification
+ * on chat etc.
+ */
+
 function showTypingBar() {
     const typingBar = document.getElementById('typingBar');
     typingBar.style.display = 'block';
@@ -8,7 +14,7 @@ function hideTypingBar() {
     typingBar.style.display = 'none';
 };
 
-function formOutMessage(text) {
+function formOutMessageHTML(text) {
     const msg = document.createElement('div');
 
     msg.classList.add('outgoing_msg');
@@ -23,7 +29,7 @@ function formOutMessage(text) {
     return msg;
 };
 
-function formInMessage(from, text) {
+function formInMessageHTML(from, text) {
     const msg = document.createElement('div');
 
     msg.classList.add('incoming_msg');
@@ -45,13 +51,13 @@ function formInMessage(from, text) {
 
 function createOutgoingMessage(message) {
     const parent = document.getElementById('msg_history');
-    const newMsg = formOutMessage(message);
+    const newMsg = formOutMessageHTML(message);
     parent.appendChild(newMsg);
 };
 
 function createIngoingMessage(from, message) {
     const parent = document.getElementById('msg_history');
-    const newMsg = formInMessage(from, message);
+    const newMsg = formInMessageHTML(from, message);
     parent.appendChild(newMsg);
 };
 

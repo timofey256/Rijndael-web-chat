@@ -1,3 +1,20 @@
+/**
+ * Getting data from server by Socket IO
+ * 
+ * Available events:
+ *  typing - On the interlocutor presses at any key in message field
+ *  stoptyping - On the interlocutor stops to press at any key in message field
+ *  message - On message
+ *  partialKey - On interlocutor starts to creating new conversation with you 
+ *               and, consequently, starts to form the secret key by the 
+ *               Diffie-Hellman's protocol. This event is uses for that.
+ *  partialResponse - Uses when you send your partial key to interlocutor and
+ *                    wait for his partial key.
+ *  newuser - On user joined to chat.
+ *  publicKeys - When user joins he should take the public keys which are
+ *               required to form the secret key in converstation.
+ */
+
 socket.on('typing', function (data) {
     if (myname != data.from) {
         showTypingBar();
