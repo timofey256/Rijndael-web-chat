@@ -12,6 +12,21 @@ addListenersToContacts();
 addListenerToSendMessageBtn();
 addListenerToTypingBar();
 
+function createKey(bitsAmount) {
+    const bytesAmount = bitsAmount / 16;
+    var key = '';
+    
+    for (let i = 0; i < bytesAmount; i++) {
+        const number = Math.random() * (10 - 0) + 0;
+        const flooredNumber = Math.floor(number);  
+        
+        key += flooredNumber;
+    }
+  
+    key = parseInt(key);
+    return key;
+};
+
 function loadMessageHistory(name) {
     messageHistory.forEach(msg => {
         if (msg.interlocutorName === name) {

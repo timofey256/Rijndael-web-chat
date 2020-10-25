@@ -3,21 +3,6 @@
  * and some functions about cryptography which will be useful
 */
 
-function createKey(bitsAmount) {
-  const bytesAmount = bitsAmount / 16;
-  var key = '';
-  
-  for (let i = 0; i < bytesAmount; i++) {
-      const number = Math.random() * (10 - 0) + 0;
-      const flooredNumber = Math.floor(number);  
-      
-      key += flooredNumber;
-  }
-
-  key = parseInt(key);
-  return key;
-};
-
 async function toSHA256(data) {
   const msgUint8 = new TextEncoder().encode(data);                              // encode as (utf-8) Uint8Array
   const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);           // hash the message
